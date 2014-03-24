@@ -116,6 +116,7 @@ struct cpcap_whisper_data {
 	struct switch_dev wsdev; /* Whisper switch */
 	struct switch_dev dsdev; /* Dock switch */
 	struct switch_dev asdev; /* Audio switch */
+	struct switch_dev hsdev; /* USB-Headset switch */
 	struct switch_dev csdev; /* Invalid charger switch */
 	char dock_id[CPCAP_WHISPER_ID_SIZE];
 	char dock_prop[CPCAP_WHISPER_PROP_SIZE];
@@ -126,6 +127,14 @@ static struct cpcap_whisper_data *whisper_di;
 
 static int whisper_debug;
 module_param(whisper_debug, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+void set_usb_audio_state(unsigned char audio)
+{
+	if (!whisper_di)
+		return;
+	
+	switch_set_state(&whisper_di->hsdev, audio?2:0);
+}
 
 static ssize_t print_name(struct switch_dev *dsdev, char *buf)
 {
@@ -332,6 +341,7 @@ static void whisper_notify(struct cpcap_whisper_data *di, enum cpcap_accy accy)
 		switch_set_state(&di->wsdev, 0);
 		switch_set_state(&di->dsdev, NO_DOCK);
 		switch_set_state(&di->asdev, 0);
+		switch_set_state(&di->hsdev, 0);
 		switch_set_state(&di->csdev, 0);
 		memset(di->dock_id, 0, CPCAP_WHISPER_ID_SIZE);
 		memset(di->dock_prop, 0, CPCAP_WHISPER_PROP_SIZE);
@@ -680,6 +690,9 @@ static int cpcap_whisper_probe(struct platform_device *pdev)
 	data->asdev.name = "usb_audio";
 	switch_dev_register(&data->asdev);
 
+	data->hsdev.name = "usb_headset";
+	switch_dev_register(&data->hsdev);
+
 	data->csdev.name = "invalid_charger";
 	switch_dev_register(&data->csdev);
 
@@ -755,6 +768,7 @@ free_mem:
 	switch_dev_unregister(&data->wsdev);
 	switch_dev_unregister(&data->dsdev);
 	switch_dev_unregister(&data->asdev);
+	switch_dev_unregister(&data->hsdev);
 	switch_dev_unregister(&data->csdev);
 	wake_lock_destroy(&data->wake_lock);
 	kfree(data);
@@ -779,6 +793,7 @@ static int __exit cpcap_whisper_remove(struct platform_device *pdev)
 	switch_dev_unregister(&data->wsdev);
 	switch_dev_unregister(&data->dsdev);
 	switch_dev_unregister(&data->asdev);
+	switch_dev_unregister(&data->hsdev);
 	switch_dev_unregister(&data->csdev);
 
 	gpio_set_value(data->pdata->data_gpio, 1);

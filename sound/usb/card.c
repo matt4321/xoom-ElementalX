@@ -422,6 +422,8 @@ static int snd_usb_audio_create(struct usb_device *dev, int idx,
 	return 0;
 }
 
+extern void set_usb_audio_state(unsigned char audio);
+
 /*
  * probe the active usb device
  *
@@ -524,6 +526,9 @@ static void *snd_usb_audio_probe(struct usb_device *dev,
 	usb_chip[chip->index] = chip;
 	chip->num_interfaces++;
 	chip->probing = 0;
+	
+	set_usb_audio_state(1);
+	
 	mutex_unlock(&register_mutex);
 	return chip;
 
@@ -547,6 +552,8 @@ static void snd_usb_audio_disconnect(struct usb_device *dev, void *ptr)
 
 	if (ptr == (void *)-1L)
 		return;
+	
+	set_usb_audio_state(0);
 
 	chip = ptr;
 	card = chip->card;
